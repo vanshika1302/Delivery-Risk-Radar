@@ -13,7 +13,7 @@ from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, OrdinalEncoder, StandardScaler
+from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, StandardScaler
 
 from radar.data import feature_columns, feature_lists
 
@@ -48,17 +48,21 @@ def logistic_pipeline(point: str, C: float = 1.0) -> Pipeline:
 
 
 def boosting_pipeline(point: str, learning_rate=0.1, max_depth=None, l2=0.0, seed=0) -> Pipeline:
+    """Gradient boosting on one-hot categories and raw numbers (missing values stay missing).
+
+    Categories are one-hot encoded on purpose: scikit-learn's native categorical splits are not understood by SHAP's tree
+    explainer, whose values then fail to add up to the model's output. With numeric splits only, explanations are exact.
+    """
     f = feature_lists(point)
     cols = feature_columns(point)
     cat = f["categorical"]
     num = [c for c in cols if c not in cat]
     pre = ColumnTransformer([
-        ("cat", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1, encoded_missing_value=-1), cat),
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), cat),
         ("num", "passthrough", num),
     ])
     model = HistGradientBoostingClassifier(learning_rate=learning_rate, max_depth=max_depth, l2_regularization=l2, max_iter=400,
-                                           early_stopping=True, n_iter_no_change=20, validation_fraction=0.1,
-                                           categorical_features=list(range(len(cat))), random_state=seed)
+                                           early_stopping=True, n_iter_no_change=20, validation_fraction=0.1, random_state=seed)
     return Pipeline([("pre", pre), ("model", model)])
 
 
