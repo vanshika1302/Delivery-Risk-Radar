@@ -69,6 +69,12 @@ def con():
     status_change("Q_weird", "2020-03-03T00:00", "Open", "Weird Status")
     status_change("Q_weird", "2020-03-06T00:00", "Weird Status", "Resolved")
 
+    # Real resolved tickets always carry their resolve transition in the changelog; give the plain fixture tickets one too.
+    with_events = {e[0] for e in EVENTS}
+    for key, _proj, _type, status, resolution, _created, resolved in ISSUES:
+        if resolved is not None and key not in with_events:
+            status_change(key, resolved.isoformat(), "Open", status)
+
     c = duckdb.connect()
     c.execute("create table issues (issue_key varchar, project_key varchar, issue_type varchar, status varchar, resolution varchar, created timestamp, resolution_date timestamp, priority varchar, assignee varchar, reporter varchar, components varchar[], link_count integer, comment_count integer)")
     c.executemany("insert into issues (issue_key, project_key, issue_type, status, resolution, created, resolution_date) values (?,?,?,?,?,?,?)", ISSUES)
@@ -191,6 +197,8 @@ def test_day7_point_needs_the_ticket_to_be_open_on_day_7_and_inside_the_data(con
     assert pts["E_open_old"] == "creation,day7"
     assert pts["F_open_young"] == "creation,day7" # day 7 is exactly the snapshot, still inside the data
     assert pts["R_too_recent"] == "creation"      # day 7 falls after the snapshot: its state at day 7 is unknown
+    # Resolved on day 5, reopened on day 9, finally resolved on day 50: it was not open on day 7, so no day-7 row.
+    assert pts["K_reopened"] == "creation"
 
 
 def test_creation_features_use_as_of_values(con):

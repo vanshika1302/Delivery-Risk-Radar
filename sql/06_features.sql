@@ -181,4 +181,7 @@ LEFT JOIN reporter_prior rp ON rp.issue_key = b.issue_key
 ASOF LEFT JOIN peer_hist ph ON ph.project_key = b.project_key AND ph.issue_type = b.issue_type_t AND b.t_at > ph.resolution_date
 ASOF LEFT JOIN project_hist jh ON jh.project_key = b.project_key AND b.t_at > jh.resolution_date
 LEFT JOIN day7_activity d ON d.issue_key = b.issue_key AND b.point = 'day7'
-LEFT JOIN day7_stage s ON s.issue_key = b.issue_key AND b.point = 'day7';
+LEFT JOIN day7_stage s ON s.issue_key = b.issue_key AND b.point = 'day7'
+-- A ticket already resolved on day 7 was not open then. It only looks "open" because of a reopen that happens later,
+-- which would leak the future (reopened tickets run late), so it gets no day-7 row.
+WHERE NOT (b.point = 'day7' AND coalesce(s.stage_at_t, '') = 'Done');
