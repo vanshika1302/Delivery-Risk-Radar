@@ -1,0 +1,20 @@
+[project]
+name = "delivery-risk-radar"
+version = "0.1.0"
+description = "Predict which Apache Jira tickets will run late, and explain why."
+requires-python = ">=3.13"
+dependencies = [
+    "duckdb>=1.5",
+    "pyarrow>=25",
+    "pymongo>=4.18",   # only its bson decoder is used
+    "requests>=2.34",
+    "pandas>=3",
+    "scikit-learn>=1.9",
+    "jupyter>=1.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=9"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

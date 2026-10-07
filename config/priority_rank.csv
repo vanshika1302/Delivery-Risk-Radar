@@ -1,0 +1,11 @@
+priority,rank
+Blocker,1.0
+Critical,0.75
+Major,0.5
+Minor,0.25
+Trivial,0.0
+Urgent,1.0
+High,0.667
+Normal,0.333
+Low,0.0
+Not a Priority,0.0

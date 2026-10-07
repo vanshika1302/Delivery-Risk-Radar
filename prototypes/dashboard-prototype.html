@@ -1,0 +1,310 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radar Dashboard Prototype</title>
+<style>
+/* PROTOTYPE, throwaway. Question: what should the Delivery Risk Radar dashboard look like?
+   Three structurally different variants, switchable from the bottom bar (arrows or keyboard) or ?variant=A|B|C.
+   All numbers and tickets below are invented example data, not real Apache tickets. */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --ink: #1a2230; --ink-2: #566074; --line: #dde1e8;
+  --accent: #2f4bd8; --accent-soft: #e6eafc;
+  --up: #c2410c; --up-soft: #fde8dc; --down: #1f7a5a; --down-soft: #def3ea;
+  --p1: #2f4bd8; --p2: #b4287a; --p3: #0f8b8d;
+  --bar-bg: #1a2230; --bar-fg: #ffffff;
+  --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151c; --surface: #1a202b; --ink: #e8ecf3; --ink-2: #a5afc0; --line: #2b3342;
+    --accent: #8ea2ff; --accent-soft: #232c52;
+    --up: #f0a27a; --up-soft: #3d2619; --down: #4fc196; --down-soft: #17382e;
+    --p1: #8ea2ff; --p2: #e58bc0; --p3: #4fc7c9;
+    --bar-bg: #e8ecf3; --bar-fg: #11151c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151c; --surface: #1a202b; --ink: #e8ecf3; --ink-2: #a5afc0; --line: #2b3342;
+  --accent: #8ea2ff; --accent-soft: #232c52;
+  --up: #f0a27a; --up-soft: #3d2619; --down: #4fc196; --down-soft: #17382e;
+  --p1: #8ea2ff; --p2: #e58bc0; --p3: #4fc7c9;
+  --bar-bg: #e8ecf3; --bar-fg: #11151c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; line-height: 1.45; padding-inline: 16px; padding-block: 0 96px; margin: 0; }
+.banner { margin-inline: -16px; padding: 8px 16px; background: var(--up-soft); color: var(--up); font-size: 12.5px; font-weight: 500; text-align: center; }
+.wrap { max-width: 1080px; margin-inline: auto; padding-block: 20px; display: flex; flex-direction: column; gap: 16px; }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 22px; font-weight: 600; }
+h2 { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--ink-2); }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 6px 12px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+:root[data-theme="dark"] .seg button[aria-pressed="true"] { color: #11151c; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .seg button[aria-pressed="true"] { color: #11151c; } }
+.risk { display: inline-block; min-width: 46px; text-align: center; font-family: var(--mono); font-weight: 500; padding: 2px 6px; border-radius: 6px; font-size: 13px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.tag { font-size: 11.5px; padding: 1px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.reason { display: grid; grid-template-columns: 1fr 120px; gap: 4px 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.reason:first-child { border-top: 0; }
+.reason .bar { height: 8px; border-radius: 4px; background: var(--line); position: relative; overflow: hidden; }
+.reason .bar i { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
+.reason small { grid-column: 1 / -1; color: var(--ink-2); font-size: 12px; }
+.up { color: var(--up); } .down { color: var(--down); }
+
+/* variant A: triage queue */
+.A-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.A-list { display: flex; flex-direction: column; max-height: 640px; overflow-y: auto; padding: 4px 0; }
+.A-item { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; padding: 10px 16px; border: 0; border-top: 1px solid var(--line); background: transparent; text-align: left; width: 100%; }
+.A-item:first-child { border-top: 0; }
+.A-item[aria-current="true"] { background: var(--accent-soft); }
+.A-item .t { min-width: 0; }
+.A-item .t b { font-weight: 500; display: block; overflow-wrap: anywhere; }
+.A-detail { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 12px; }
+@media (max-width: 760px) { .A-grid { grid-template-columns: 1fr; } .A-detail { position: static; } }
+
+/* variant B: analytics overview */
+.B-grid { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 16px; align-items: start; }
+.B-side { display: flex; flex-direction: column; gap: 4px; }
+.B-side button { text-align: left; border: 1px solid transparent; background: transparent; padding: 8px 10px; border-radius: 8px; display: flex; gap: 8px; align-items: center; }
+.B-side button[aria-pressed="true"] { background: var(--surface); border-color: var(--line); font-weight: 600; }
+.B-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.kpi .n { font-size: 26px; font-weight: 600; line-height: 1.1; }
+.stack { display: flex; height: 22px; border-radius: 5px; overflow: hidden; }
+.stack i { display: block; height: 100%; }
+.srow { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; align-items: center; padding: 6px 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--ink-2); }
+.drv { display: grid; grid-template-columns: 150px minmax(0, 1fr) 44px; gap: 10px; align-items: center; padding: 4px 0; font-size: 13px; }
+.drv .bar { height: 10px; background: var(--accent); border-radius: 3px; }
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th { text-align: left; font-size: 12px; color: var(--ink-2); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.tbl td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl tr.x { cursor: pointer; }
+.tbl-wrap { overflow-x: auto; }
+@media (max-width: 760px) { .B-grid { grid-template-columns: 1fr; } .B-side { flex-direction: row; flex-wrap: wrap; } .kpis { grid-template-columns: 1fr; } .drv { grid-template-columns: 110px minmax(0, 1fr) 40px; } }
+
+/* variant C: explorer */
+.C-top { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.C-plot { width: 100%; height: auto; display: block; }
+.C-plot text { fill: var(--ink-2); font-family: var(--font); font-size: 11px; }
+.C-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 760px) { .C-card { grid-template-columns: 1fr; } }
+.peer { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-size: 13px; }
+
+#switcher { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 4px; background: var(--bar-bg); color: var(--bar-fg); border-radius: 999px; padding: 6px; box-shadow: 0 6px 24px rgba(0,0,0,.28); z-index: 10; max-width: calc(100vw - 32px); }
+#switcher button { border: 0; background: transparent; color: inherit; width: 34px; height: 34px; border-radius: 50%; font-size: 16px; }
+#switcher button:hover { background: rgba(127,127,127,.28); }
+#switcher span { padding: 0 10px; font-weight: 500; font-size: 13px; white-space: nowrap; }
+</style>
+
+<div class="banner">PROTOTYPE. Throwaway mock-up with invented example data. None of these tickets or numbers are real.</div>
+<div class="wrap" id="app"></div>
+<div id="switcher" role="group" aria-label="Prototype variant">
+  <button id="prev" aria-label="Previous variant">&larr;</button>
+  <span id="vlabel"></span>
+  <button id="next" aria-label="Next variant">&rarr;</button>
+</div>
+
+<script>
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+var rnd = mulberry32(11);
+var VARIANTS = [{k:'A',n:'Triage queue'},{k:'B',n:'Analytics overview'},{k:'C',n:'Risk explorer'}];
+var PROJ = [
+  {id:'KAFKA',c:'var(--p1)',late:27,median:38,p75:279,open:131,stages:[34,22,36,8]},
+  {id:'HDFS',c:'var(--p2)',late:24,median:13,p75:107,open:204,stages:[28,10,52,10]},
+  {id:'CASSANDRA',c:'var(--p3)',late:26,median:13,p75:98,open:96,stages:[41,12,38,9]}
+];
+var STAGES = [{n:'Waiting',c:'var(--ink-2)'},{n:'Building',c:'var(--p3)'},{n:'In review',c:'var(--p1)'},{n:'Rework loops',c:'var(--up)'}];
+var DRIVERS = [['No assignee at day 7',.19,'Ownership'],['Short description',.15,'Scope'],['Peer group recently slow',.14,'History'],['Project queue length',.12,'Workload'],['Priority below project norm',.1,'Scope'],['No comments in 7 days',.09,'Ownership'],['First-time reporter',.07,'Ownership'],['No component set',.05,'Scope']];
+var TITLES = ['Consumer group stalls after broker restart','Replica fetch retries without backoff','Snapshot cleanup misses orphaned segments','Add metric for request queue time','Flaky test in rebalance suite','Namenode failover leaves stale lease','Block report storm on startup','Clarify quota error message','Compaction pauses under heavy deletes','Repair streams time out on large partitions','Upgrade path from older schema','Docs: describe retention settings','Offset commit race on shutdown','Heartbeat thread blocks on GC','Decommission hangs with one slow node','Add option to throttle balancer','Guard against null rack in topology','Token ring shows duplicate range','Test harness leaks file handles','Support rolling restart hint','Log noise from idle connections','Mixed-version cluster gossip error','Checksum mismatch after disk swap','Expose lag per partition in tooling','Leader election slow with many topics','Hinted handoff replays out of order','Trim redundant config validation','Index rebuild ignores throttle'];
+var D0 = [
+  {k:'prio',t:'Scope',up:function(t){return 'Priority below the project norm';},dn:function(t){return 'Priority above the project norm';}},
+  {k:'desc',t:'Scope',up:function(t){return 'Short description ('+t.desc+' characters, peers typically 310)';},dn:function(t){return 'Detailed description ('+t.desc+' characters)';}},
+  {k:'load',t:'Workload',up:function(t){return 'Project has '+t.load+' open tickets (typical 140)';},dn:function(t){return 'Light project queue ('+t.load+' open tickets)';}},
+  {k:'peer',t:'History',up:function(t){return 'Peers were recently late '+t.peer+'% of the time (overall 25%)';},dn:function(t){return 'Peers were recently late only '+t.peer+'% of the time';}},
+  {k:'rep',t:'Ownership',up:function(t){return 'First-time reporter';},dn:function(t){return 'Experienced reporter';}},
+  {k:'comp',t:'Scope',up:function(t){return 'No component set';},dn:function(t){return 'Component set';}},
+  {k:'link',t:'Scope',up:function(t){return 'No linked tickets';},dn:function(t){return 'Linked to related tickets';}}
+];
+var D7 = [
+  {k:'asg',t:'Ownership',up:function(t){return 'No assignee after 7 days';},dn:function(t){return 'Has an assignee';}},
+  {k:'com',t:'Ownership',up:function(t){return 'No comments in the first 7 days';},dn:function(t){return 'Active discussion ('+t.com+' comments)';}},
+  {k:'evt',t:'History',up:function(t){return 'No status change yet';},dn:function(t){return 'Already moved through review';}},
+  {k:'quiet',t:'History',up:function(t){return t.quiet+' days since last activity';},dn:function(t){return 'Recent activity';}}
+];
+function shuffle(a){var b=a.slice(),i,j,x;for(i=b.length-1;i>0;i--){j=Math.floor(rnd()*(i+1));x=b[i];b[i]=b[j];b[j]=x;}return b;}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function build(list,t,n){
+  return shuffle(list).slice(0,n).map(function(r){
+    var s = rnd()<0.62 ? 1 : -1, m = 0.03 + rnd()*0.17;
+    return {t:r.t,c:s*m,txt:(s>0?r.up(t):r.dn(t))};
+  }).sort(function(a,b){return Math.abs(b.c)-Math.abs(a.c);});
+}
+var TICKETS = TITLES.map(function(title,i){
+  var p = PROJ[Math.floor(rnd()*3)];
+  var t = {i:i,key:p.id+'-EX'+(i+1<10?'0':'')+(i+1),p:p,title:title,
+    type:['Bug','Improvement','New Feature','Task','Test'][Math.floor(rnd()*5)],
+    age:Math.floor(1+Math.pow(rnd(),1.6)*380),
+    desc:Math.floor(30+rnd()*520),load:Math.floor(p.open*(0.8+rnd()*0.5)),peer:Math.floor(14+rnd()*30),
+    com:Math.floor(1+rnd()*6),quiet:Math.floor(4+rnd()*60)};
+  t.r0 = build(D0,t,5);
+  t.r7 = build(D7.concat(D0.slice(0,3)),t,5);
+  t.s0 = clamp(0.25+t.r0.reduce(function(a,r){return a+r.c;},0),0.03,0.95);
+  t.s7 = clamp(0.25+t.r7.reduce(function(a,r){return a+r.c;},0),0.03,0.95);
+  return t;
+});
+
+var S = {v:'A',day:0,proj:'ALL',sel:0,open:null};
+(function(){try{var q=new URLSearchParams(location.search).get('variant');if(q&&/^[ABC]$/.test(q))S.v=q;}catch(e){}})();
+function score(t){return S.day===0?t.s0:t.s7;}
+function reasons(t){return S.day===0?t.r0:t.r7;}
+function visible(){
+  return TICKETS.filter(function(t){return (S.proj==='ALL'||t.p.id===S.proj)&&(S.day===0||t.age>=7);})
+    .sort(function(a,b){return score(b)-score(a);});
+}
+function riskCss(v){return v>=0.5?'background:var(--up-soft);color:var(--up)':(v>=0.35?'background:var(--accent-soft);color:var(--accent)':'background:var(--down-soft);color:var(--down)');}
+function pct(v){return Math.round(v*100)+'%';}
+function risk(v){return '<span class="risk" style="'+riskCss(v)+'">'+pct(v)+'</span>';}
+function dayToggle(){
+  return '<div class="seg" role="group" aria-label="Prediction point"><button data-day="0" aria-pressed="'+(S.day===0)+'">At creation</button><button data-day="7" aria-pressed="'+(S.day===7)+'">Day 7</button></div>';
+}
+function reasonList(t){
+  return reasons(t).map(function(r){
+    var w = Math.round(Math.abs(r.c)/0.2*100);
+    var col = r.c>0?'var(--up)':'var(--down)';
+    return '<div class="reason"><div><span class="'+(r.c>0?'up':'down')+'">'+(r.c>0?'Raises risk':'Lowers risk')+'</span> &middot; '+r.txt+'</div>'+
+      '<div class="bar" aria-hidden="true"><i style="left:0;width:'+Math.min(w,100)+'%;background:'+col+'"></i></div>'+
+      '<small>'+r.t+' &middot; '+(r.c>0?'+':'-')+Math.round(Math.abs(r.c)*100)+' points</small></div>';
+  }).join('');
+}
+function peerBox(t){
+  return '<div class="peer"><span class="muted">Open for</span><span class="mono">'+t.age+' days</span>'+
+    '<span class="muted">Peer group median lead time</span><span class="mono">'+t.p.median+' days</span>'+
+    '<span class="muted">Late threshold (P75)</span><span class="mono">'+t.p.p75+' days</span></div>';
+}
+function head(sub){
+  return '<div class="row" style="justify-content:space-between"><div><h1>Delivery Risk Radar</h1><p class="muted">'+sub+'</p></div>'+
+    '<p class="muted mono" style="font-size:12px">Data as of the January 2022 snapshot</p></div>';
+}
+
+function viewA(){
+  var L = visible();
+  if (!L.length) { return head('Open tickets ranked by chance of running late')+'<div class="card">No tickets match.</div>'; }
+  var cur = L.filter(function(t){return t.i===S.sel;})[0] || L[0];
+  var items = L.map(function(t){
+    return '<button class="A-item" data-sel="'+t.i+'" aria-current="'+(t.i===cur.i)+'">'+risk(score(t))+
+      '<span class="t"><b>'+t.title+'</b><span class="muted"><span class="dot" style="background:'+t.p.c+'"></span> '+t.key+' &middot; '+t.type+' &middot; '+t.age+' days</span></span></button>';
+  }).join('');
+  var filt = '<div class="seg" role="group" aria-label="Project"><button data-proj="ALL" aria-pressed="'+(S.proj==='ALL')+'">All</button>'+
+    PROJ.map(function(p){return '<button data-proj="'+p.id+'" aria-pressed="'+(S.proj===p.id)+'">'+p.id+'</button>';}).join('')+'</div>';
+  return head('Open tickets ranked by chance of running late')+
+    '<div class="row">'+dayToggle()+filt+'</div>'+
+    '<div class="A-grid"><div class="card" style="padding:0"><div class="A-list">'+items+'</div></div>'+
+    '<div class="A-detail card"><div class="row" style="justify-content:space-between"><h2>Why this ticket</h2>'+risk(score(cur))+'</div>'+
+    '<div><b>'+cur.title+'</b><p class="muted">'+cur.key+' &middot; '+cur.type+'</p></div>'+reasonList(cur)+'<div>'+peerBox(cur)+'</div>'+
+    '<p class="muted" style="font-size:12px">Reasons describe what the model associates with lateness, not what causes it.</p></div></div>';
+}
+
+function viewB(){
+  var sel = S.proj==='ALL'?null:PROJ.filter(function(p){return p.id===S.proj;})[0];
+  var list = sel?[sel]:PROJ;
+  var lateRate = Math.round(list.reduce(function(a,p){return a+p.late;},0)/list.length);
+  var med = Math.round(list.reduce(function(a,p){return a+p.median;},0)/list.length);
+  var L = visible().slice(0,8);
+  var side = '<div class="B-side"><button data-proj="ALL" aria-pressed="'+(S.proj==='ALL')+'">All projects</button>'+
+    PROJ.map(function(p){return '<button data-proj="'+p.id+'" aria-pressed="'+(S.proj===p.id)+'"><span class="dot" style="background:'+p.c+'"></span>'+p.id+'</button>';}).join('')+'</div>';
+  var stages = list.map(function(p){
+    return '<div class="srow"><b>'+p.id+'</b><div class="stack" role="img" aria-label="Share of lead time by stage for '+p.id+'">'+
+      p.stages.map(function(v,k){return '<i style="width:'+v+'%;background:'+STAGES[k].c+'"></i>';}).join('')+'</div></div>';
+  }).join('');
+  var legend = '<div class="legend">'+STAGES.map(function(s){return '<span><span class="dot" style="background:'+s.c+'"></span> '+s.n+'</span>';}).join('')+'</div>';
+  var drivers = DRIVERS.map(function(d){
+    return '<div class="drv"><span>'+d[0]+'</span><div><div class="bar" style="width:'+Math.round(d[1]/0.2*100)+'%"></div></div><span class="mono muted">'+Math.round(d[1]*100)+'</span></div>';
+  }).join('');
+  var rows = L.map(function(t){
+    var op = S.open===t.i;
+    return '<tr class="x" data-open="'+t.i+'"><td>'+risk(score(t))+'</td><td><b>'+t.title+'</b><div class="muted">'+t.key+' &middot; '+t.type+'</div></td><td class="mono">'+t.age+' d</td></tr>'+
+      (op?'<tr><td colspan="3" style="background:var(--bg)">'+reasonList(t)+'</td></tr>':'');
+  }).join('');
+  return head('Where time goes, what drives lateness, and what is at risk now')+
+    '<div class="row">'+dayToggle()+'</div>'+
+    '<div class="B-grid">'+side+'<div class="B-main">'+
+    '<div class="kpis"><div class="card kpi"><h2>Late rate</h2><div class="n mono">'+lateRate+'%</div><p class="muted">of delivered tickets</p></div>'+
+    '<div class="card kpi"><h2>Median lead time</h2><div class="n mono">'+med+' d</div><p class="muted">created to resolved</p></div>'+
+    '<div class="card kpi"><h2>Open and risky</h2><div class="n mono">'+visible().filter(function(t){return score(t)>=0.5;}).length+'</div><p class="muted">at 50% or higher</p></div></div>'+
+    '<div class="card"><h2>Share of lead time by stage</h2>'+stages+legend+'</div>'+
+    '<div class="card"><h2>What drives lateness across the model</h2><div style="height:8px"></div>'+drivers+'</div>'+
+    '<div class="card"><h2>Most at risk now (click a row for reasons)</h2><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Risk</th><th>Ticket</th><th>Open</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'+
+    '</div></div>';
+}
+
+function viewC(){
+  var L = visible();
+  var W=640,H=320,ml=40,mr=14,mt=14,mb=34;
+  var pw=W-ml-mr,ph=H-mt-mb;
+  function X(a){return ml+Math.min(a,400)/400*pw;}
+  function Y(v){return mt+(1-v)*ph;}
+  var grid='',k;
+  for(k=0;k<=4;k++){var v=k*0.25;grid+='<line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="var(--line)"/><text x="'+(ml-6)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+Math.round(v*100)+'%</text>';}
+  for(k=0;k<=4;k++){var a=k*100;grid+='<text x="'+X(a)+'" y="'+(H-12)+'" text-anchor="middle">'+a+'</text>';}
+  var cur = L.filter(function(t){return t.i===S.sel;})[0] || L[0];
+  var dots = L.map(function(t){
+    var on = cur && t.i===cur.i;
+    return '<circle data-sel="'+t.i+'" cx="'+X(t.age)+'" cy="'+Y(score(t))+'" r="'+(on?8:5.5)+'" fill="'+t.p.c+'" fill-opacity="'+(on?1:.72)+'" stroke="'+(on?'var(--ink)':'var(--surface)')+'" stroke-width="'+(on?2:1)+'" tabindex="0" role="button" aria-label="'+t.title+', risk '+pct(score(t))+'" style="cursor:pointer"></circle>';
+  }).join('');
+  var plot = '<svg class="C-plot" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Open tickets by age and risk">'+grid+
+    '<line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+Y(0.5)+'" y2="'+Y(0.5)+'" stroke="var(--up)" stroke-dasharray="5 4"/>'+
+    '<text x="'+(W-mr)+'" y="'+(Y(0.5)-5)+'" text-anchor="end" style="fill:var(--up)">50% risk</text>'+
+    '<text x="'+(ml+pw/2)+'" y="'+(H-0)+'" text-anchor="middle" dy="-0">days open</text>'+dots+'</svg>';
+  var legend = '<div class="legend">'+PROJ.map(function(p){return '<span><span class="dot" style="background:'+p.c+'"></span> '+p.id+'</span>';}).join('')+'</div>';
+  var card = cur ? '<div class="card C-card"><div><div class="row" style="justify-content:space-between"><h2>Selected ticket</h2>'+risk(score(cur))+'</div>'+
+    '<p style="margin-top:8px"><b>'+cur.title+'</b></p><p class="muted">'+cur.key+' &middot; '+cur.type+'</p><div style="height:10px"></div>'+peerBox(cur)+
+    '<p class="muted" style="font-size:12px;margin-top:10px">Reasons describe what the model associates with lateness, not what causes it.</p></div><div>'+reasonList(cur)+'</div></div>' : '';
+  var quality = '<div class="card row" style="justify-content:space-between"><span class="muted">Model check (example numbers)</span>'+
+    '<span class="mono">PR-AUC 0.49 vs 0.26 base rate &middot; precision at top 10%: 61%</span></div>';
+  return '<div class="C-top"><div><h1>Delivery Risk Radar</h1><p class="muted">Every open ticket by age and risk. Click a dot for the reasons.</p></div>'+dayToggle()+'</div>'+
+    '<div class="card">'+plot+legend+'</div>'+card+quality;
+}
+
+function render(){
+  var app = document.getElementById('app');
+  app.innerHTML = S.v==='A'?viewA():(S.v==='B'?viewB():viewC());
+  var cur = VARIANTS.filter(function(v){return v.k===S.v;})[0];
+  document.getElementById('vlabel').textContent = cur.k+' ('+cur.n+')';
+  try{var u=new URL(location.href);u.searchParams.set('variant',S.v);history.replaceState(null,'',u);}catch(e){}
+}
+function cycle(d){
+  var i = VARIANTS.map(function(v){return v.k;}).indexOf(S.v);
+  S.v = VARIANTS[(i+d+VARIANTS.length)%VARIANTS.length].k;
+  render();
+}
+document.getElementById('prev').addEventListener('click',function(){cycle(-1);});
+document.getElementById('next').addEventListener('click',function(){cycle(1);});
+document.addEventListener('keydown',function(e){
+  var el = document.activeElement, tag = el && el.tagName;
+  if (tag==='INPUT'||tag==='TEXTAREA'||(el&&el.isContentEditable)) return;
+  if (e.key==='ArrowLeft') cycle(-1);
+  if (e.key==='ArrowRight') cycle(1);
+});
+document.getElementById('app').addEventListener('click',function(e){
+  var el = e.target.closest('[data-day],[data-proj],[data-sel],[data-open]');
+  if (!el) return;
+  if (el.hasAttribute('data-day')) S.day = +el.getAttribute('data-day');
+  if (el.hasAttribute('data-proj')) S.proj = el.getAttribute('data-proj');
+  if (el.hasAttribute('data-sel')) S.sel = +el.getAttribute('data-sel');
+  if (el.hasAttribute('data-open')) { var n=+el.getAttribute('data-open'); S.open = S.open===n?null:n; }
+  render();
+});
+document.getElementById('app').addEventListener('keydown',function(e){
+  if ((e.key==='Enter'||e.key===' ') && e.target.getAttribute && e.target.hasAttribute('data-sel') && e.target.tagName==='circle') { S.sel=+e.target.getAttribute('data-sel'); e.preventDefault(); render(); }
+});
+render();
+</script>

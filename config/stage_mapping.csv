@@ -1,0 +1,49 @@
+status,stage
+Open,Waiting
+New,Waiting
+To Do,Waiting
+Idea,Waiting
+Unassigned,Waiting
+Assigned,Waiting
+Accepted,Waiting
+Reopened,Waiting
+Triage Needed,Waiting
+Triage,Waiting
+Under Discussion,Waiting
+Awaiting Feedback,Waiting
+Waiting for user,Waiting
+Waiting for Infra,Waiting
+On Hold,Waiting
+Blocked,Waiting
+Needs Reviewer,Waiting
+Needs Committer,Waiting
+Documentation Required,Waiting
+Testcases Required,Waiting
+Documentation/Testcases Required,Waiting
+Requires Testing,Waiting
+Requires Porting,Waiting
+Unknown,Waiting
+In Progress,Building
+Started,Building
+In Implementation,Building
+Continued,Building
+Patch Available,In review
+Reviewable,In review
+In Review,In review
+Ready To Review,In review
+For Review,In review
+For Review - 2,In review
+Review In Progress,In review
+Changes Suggested,In review
+Change Requested,In review
+Ready to Commit,In review
+Patch Reviewed,In review
+Testing,In review
+Verified,In review
+Resolved,Done
+Closed,Done
+Done,Done
+Pending Closed,Done
+Abandoned,Done
+Not Applicable,Done
+Ported,Done

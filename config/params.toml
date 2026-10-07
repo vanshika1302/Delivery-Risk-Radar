@@ -1,0 +1,28 @@
+# Parameters for the SQL layers (sql/02 onward). Decisions live in .scratch/delivery-risk-radar/issues/.
+
+[scope]
+# Top 8 by delivered ticket count after excluding INFRA (ops requests) and FLEX (legacy import, 90% bugs).
+# Four use Patch Available (AMBARI, HBASE, HIVE, CASSANDRA), four are pull-request based.
+projects = ["AMBARI", "SPARK", "HBASE", "CAMEL", "HIVE", "FLINK", "ARROW", "CASSANDRA"]
+excluded_issue_types = ["Epic", "Sub-task"]
+# Audit found Implemented, Resolved and Delivered mean the same as Fixed and Done in real projects.
+delivered_resolutions = ["Fixed", "Done", "Implemented", "Resolved", "Delivered"]
+min_created = "2001-01-01"      # 289 early SPARK tickets are dated the year 0010
+snapshot = "2022-01-06"         # day after the newest update in the data (2022-01-05)
+too_fast_hours = 1              # design choice (see docs/data-audit.md): delivered tickets resolved faster than this are not delivery signal
+bulk_min_tickets = 10           # same person resolving this many delivered tickets in one minute is a cleanup
+
+[late]
+percentile = 0.75
+min_group_size = 30             # peer group (project and type) falls back to project, then type
+
+[split]
+train_cutoff = "2019-01-01"     # thresholds use only tickets created and resolved before this
+test_start = "2019-03-01"       # two months of gap
+test_end = "2021-10-01"         # keeps at least 90% of test tickets labelable (checked by transform)
+
+[features]
+# Four projects review through Jira statuses (Patch Available); the others review on GitHub.
+jira_review_projects = ["AMBARI", "HIVE", "HBASE", "CASSANDRA"]
+day7_after_days = 7             # second prediction point: this many days after creation
+peer_window = 200               # last N delivered tickets of the peer group, resolved before the prediction point
