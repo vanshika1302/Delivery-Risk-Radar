@@ -28,16 +28,20 @@ Needs Node 18 or newer. Light and dark mode follow the viewer's setting; the lay
 
 After retraining: `python -m radar.train && python -m radar.report && python -m radar.export`, then commit the changed files in `dashboard/src/data/` and `docs/`.
 
-## Publishing (not done)
+## Publishing
 
-`.github/workflows/deploy-dashboard.yml` builds the site and deploys it to GitHub Pages. It is **manual only** (`workflow_dispatch`) on purpose:
+**Live at https://vanshika1302.github.io/Delivery-Risk-Radar/** (GitHub Pages, free). The repository is public, because Pages on a private repository needs a paid plan and a Pages site is public either way.
 
-1. **A Pages site is public even when the repository is private.** The dashboard shows ticket keys, reasons and model results for public Apache tickets, and no personal data, but publishing is still the owner's decision.
-2. GitHub Pages for a private repository needs a paid plan (Pro, Team or Enterprise). On a free account, make the repository public first or use another static host.
-3. To publish: in the repository settings, set Pages "Source" to "GitHub Actions", then run the workflow from the Actions tab. The site appears at `https://<user>.github.io/Delivery-Risk-Radar/`.
+`.github/workflows/deploy-dashboard.yml` builds the site and deploys it. It is **manual** (`workflow_dispatch`), so nothing is published by accident. To publish a new version after committing changes:
 
-The build output is plain static files, so any static host works (Netlify, Cloudflare Pages, an S3 bucket): upload `dashboard/dist`.
+```bash
+gh workflow run deploy-dashboard.yml
+```
+
+or use the Actions tab. The first deploy ran in about a minute. Pages is configured with the source "GitHub Actions".
+
+The build output is plain static files, so any static host also works (Netlify, Cloudflare Pages, an S3 bucket): upload `dashboard/dist`.
 
 ## How the page was checked
 
-Each page was built and loaded in headless Chrome with light and dark mode forced, at desktop width and at 400 px: no render errors, no console errors, no horizontal overflow, and every chart drawn from the real data.
+Each page was built and loaded in headless Chrome with light and dark mode forced, at desktop width and at 400 px: no render errors, no console errors, no horizontal overflow, and every chart drawn from the real data. The live URL was checked the same way after the first deploy.

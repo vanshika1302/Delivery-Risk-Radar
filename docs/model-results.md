@@ -46,8 +46,8 @@ Boosting versus the project baseline: +0.124 (interval +0.117 to +0.131); versus
 
 Permutation importance on the test period (drop in PR-AUC when a feature is scrambled), top features:
 
-- **Creation:** `assignee_open` 0.09, `reporter_prior_tickets` 0.04, `project_key` 0.03, `description_length` 0.02, `workflow_family` 0.02. Refitting without `assignee_open` drops PR-AUC from 0.630 to 0.589 (ROC-AUC 0.707 to 0.659); without the reporter features, to 0.615; without peer and project history, to 0.641.
-- **Day 7:** `assignee_open` 0.03, `days_since_activity_day7` 0.01, `project_key` 0.01, `events_by_day7` 0.01, `peer_median_lead_days` 0.01. Refitting without `assignee_open` gives PR-AUC 0.892 (all features 0.893); no single feature group matters much.
+- **Creation:** `assignee_open` 0.09, `reporter_prior_tickets` 0.04, `project_key` 0.03, `description_length` 0.02, `issue_type` 0.02. Refitting without `assignee_open` drops PR-AUC from 0.629 to 0.590 (ROC-AUC 0.707 to 0.659); without the reporter features, to 0.616; without peer and project history, to 0.636.
+- **Day 7:** `assignee_open` 0.03, `project_key` 0.01, `days_since_activity_day7` 0.01, `events_by_day7` 0.01, `peer_median_lead_days` 0.01. Refitting without `assignee_open` gives PR-AUC 0.893 (all features 0.891); no single feature group matters much.
 
 `assignee_open` is empty when nobody is assigned, so in practice it works as "was this ticket assigned when it was filed". That is a real and consistent signal. Late rate when assigned at filing versus not: HIVE 34% vs 72%, AMBARI 25% vs 69%, SPARK 14% vs 34%. It is not a leak: only 14 of 52,727 assigned-at-creation tickets have an assignment event within 10 seconds after creation, and 47,128 have no assignment event at all (they were created with the assignee). The workload count itself adds little: late rates stay between 22% and 27% across workload buckets. The explanation layer words this as "assigned when filed", not as a workload number.
 
@@ -60,3 +60,7 @@ Priority matters less than expected, consistent with the SQL analysis.
 - Run-to-run variation is about ±0.002 PR-AUC, and the tuner's chosen tree depth can change between identical runs because the grid scores are nearly tied. This does not change the conclusions.
 - Thresholds, and so the label, come from the training period only. The test window ends so that 99.8% of its tickets are labelable.
 - The model describes associations in this data, not causes. The dashboard says so.
+
+## Decision: the day-7 model
+
+Gradient boosting and logistic regression tie at day 7. **Boosting is kept** because the explanations are built on it and the two points then share one method; logistic regression is an equally accurate, fully transparent alternative if a simpler model is ever preferred (its coefficients can explain tickets directly). Decided by the project owner's delegation.

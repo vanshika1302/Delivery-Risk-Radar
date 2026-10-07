@@ -145,6 +145,10 @@ Priority matters less than expected, consistent with the SQL analysis.
 - Run-to-run variation is about ±0.002 PR-AUC, and the tuner's chosen tree depth can change between identical runs because the grid scores are nearly tied. This does not change the conclusions.
 - Thresholds, and so the label, come from the training period only. The test window ends so that 99.8% of its tickets are labelable.
 - The model describes associations in this data, not causes. The dashboard says so.
+
+## Decision: the day-7 model
+
+Gradient boosting and logistic regression tie at day 7. **Boosting is kept** because the explanations are built on it and the two points then share one method; logistic regression is an equally accurate, fully transparent alternative if a simpler model is ever preferred (its coefficients can explain tickets directly). Decided by the project owner's delegation.
 """
     Path(out).write_text(text)
     return text

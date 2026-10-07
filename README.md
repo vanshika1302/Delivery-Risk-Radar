@@ -2,6 +2,8 @@
 
 An analytics-first look at Jira data: **which tickets will run late, and why.** Built on the public Apache Jira history (1.01 million tickets), with a SQL analysis of where delivery time goes, a calibrated prediction model, plain-English reasons for every prediction, and a static dashboard.
 
+**Live dashboard: https://vanshika1302.github.io/Delivery-Risk-Radar/**
+
 ![Overview page of the dashboard](docs/images/dashboard-overview.png)
 
 ## Headline results
@@ -66,7 +68,7 @@ python -m pytest                # 54 tests, none needs the dataset
 cd dashboard && npm ci && npm run dev    # preview the site; `npm run build` makes a static copy in dashboard/dist
 ```
 
-The exported data files are committed, so the dashboard builds without running any of the Python steps. See [docs/dashboard.md](docs/dashboard.md) for hosting.
+The exported data files are committed, so the dashboard builds without running any of the Python steps. It is hosted on GitHub Pages; see [docs/dashboard.md](docs/dashboard.md).
 
 ## Repository map
 
