@@ -1,0 +1,54 @@
+/* Delivery Risk Radar. A custom stylesheet replaces Framework's default theme, so the layout and both themes are imported here:
+   light ("air") and dark ("near-midnight"), following the viewer's setting. */
+@import url("observablehq:default.css");
+@import url("observablehq:theme-air.css") (prefers-color-scheme: light);
+@import url("observablehq:theme-near-midnight.css") (prefers-color-scheme: dark);
+
+:root {
+  --up: #c2410c; --up-soft: #fde8dc;
+  --down: #1f7a5a; --down-soft: #def3ea;
+  --accent: #2a78d6; --accent-soft: #e4eefb;
+  --warn-bg: #fdf0d8; --warn-fg: #8a5200;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --up: #f0a27a; --up-soft: #3d2619;
+    --down: #4fc196; --down-soft: #17382e;
+    --accent: #3987e5; --accent-soft: #1c2c45;
+    --warn-bg: #3b2e14; --warn-fg: #f0b24f;
+  }
+}
+#observablehq-main { max-width: 1040px; }
+h1 { font-size: 2rem; max-width: none; margin-bottom: .25rem; }
+h2 { margin-top: 2.2rem; }
+.lede { font-size: 1.1rem; color: var(--theme-foreground-muted); max-width: 62ch; margin-top: 0; }
+.muted { color: var(--theme-foreground-muted); }
+.note { background: var(--theme-background-alt); border-radius: 8px; padding: .7rem 1rem; font-size: .92rem; max-width: 72ch; }
+.warn { background: var(--warn-bg); color: var(--warn-fg); border-radius: 8px; padding: .7rem 1rem; font-size: .92rem; max-width: 72ch; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 1.2rem 0; }
+.kpi { background: var(--theme-background-alt); border-radius: 10px; padding: 14px 16px; }
+.kpi .n { font-size: 2rem; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.kpi .l { font-size: .85rem; color: var(--theme-foreground-muted); margin-top: 2px; }
+.chip { display: inline-block; font-size: .78rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.chip.up { background: var(--up-soft); color: var(--up); }
+.chip.down { background: var(--down-soft); color: var(--down); }
+.riskbar { position: relative; height: 20px; min-width: 110px; background: var(--theme-background-alt); border-radius: 4px; overflow: hidden; }
+.riskbar i { position: absolute; inset: 0 auto 0 0; background: var(--up); opacity: .35; }
+.riskbar b { position: relative; padding-left: 6px; font-variant-numeric: tabular-nums; font-size: .85rem; line-height: 20px; }
+.detail { background: var(--theme-background-alt); border-radius: 10px; padding: 16px 18px; margin: 1rem 0; max-width: 760px; }
+.detail h3 { margin: 0 0 2px; font-size: 1.05rem; }
+.detail .sub { color: var(--theme-foreground-muted); font-size: .88rem; }
+.detail .head { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; justify-content: space-between; }
+.detail .prob { font-size: 1.8rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.reason { display: grid; grid-template-columns: minmax(0, 1fr) 130px; gap: 2px 14px; align-items: center; padding: 8px 0; border-top: 1px solid var(--theme-foreground-faintest); }
+.reason .dir { font-size: .78rem; font-weight: 600; }
+.reason .dir.up { color: var(--up); } .reason .dir.down { color: var(--down); }
+.reason .meter { height: 8px; background: var(--theme-foreground-faintest); border-radius: 4px; position: relative; overflow: hidden; }
+.reason .meter i { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
+.reason .meter i.up { left: 0; background: var(--up); } .reason .meter i.down { left: 0; background: var(--down); }
+.reason small { grid-column: 1 / -1; color: var(--theme-foreground-muted); font-size: .8rem; }
+.themes { display: flex; flex-wrap: wrap; gap: 6px 10px; margin: 10px 0 2px; font-size: .85rem; }
+.themes span { padding: 2px 9px; border-radius: 999px; background: var(--theme-background); font-variant-numeric: tabular-nums; }
+.themes .up { color: var(--up); } .themes .down { color: var(--down); }
+.outcome { font-weight: 600; }
+@media (max-width: 560px) { .reason { grid-template-columns: 1fr; } .kpi .n { font-size: 1.6rem; } }

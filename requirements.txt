@@ -1,0 +1,12 @@
+# Runtime and analysis dependencies (versions are the minimums this project was built and tested with).
+duckdb>=1.5
+pyarrow>=25
+pymongo>=4.18      # only its bson decoder is used
+requests>=2.34
+pandas>=3
+scikit-learn>=1.9
+shap>=0.52
+scipy>=1.14
+matplotlib>=3.9
+jupyter>=1.1
+pytest>=9

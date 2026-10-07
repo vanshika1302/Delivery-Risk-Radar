@@ -1,0 +1,36 @@
+name: Deploy dashboard
+
+# MANUAL ONLY. Running this publishes the dashboard to GitHub Pages, and a Pages site is public even when the repository is
+# private, so it is deliberately not triggered by pushes. See docs/dashboard.md before enabling Pages and running it.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dashboard/dist
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

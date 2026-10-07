@@ -1,0 +1,14 @@
+{
+  "name": "delivery-risk-radar-dashboard",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "observable preview",
+    "build": "observable build",
+    "clean": "rm -rf dist src/.observablehq/cache"
+  },
+  "engines": {"node": ">=18"},
+  "dependencies": {
+    "@observablehq/framework": "^1.13.4"
+  }
+}

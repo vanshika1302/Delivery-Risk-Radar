@@ -18,3 +18,8 @@ data/*
 *.pem
 *.key
 .claude/settings.local.json
+
+# Dashboard build output and dependencies
+dashboard/node_modules/
+dashboard/dist/
+dashboard/src/.observablehq/cache/
