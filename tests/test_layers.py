@@ -15,6 +15,7 @@ PARAMS = {
               "too_fast_hours": 1, "bulk_min_tickets": 10},
     "late": {"percentile": 0.75, "min_group_size": 30},
     "split": {"train_cutoff": "2020-01-01", "test_start": "2020-02-01", "test_end": "2021-01-01"},
+    "features": {"jira_review_projects": ["P1"], "day7_after_days": 7, "peer_window": 200},
 }
 ISSUES = []     # (key, type, status, resolution, created, resolved)
 EVENTS = []     # (key, history_id, at, from, to)
@@ -53,6 +54,8 @@ def con():
     ticket("O_flow", "2020-03-01T00:00", "2020-03-11T00:00")
     ticket("P_rework", "2020-03-01T00:00", "2020-03-21T00:00")
     ticket("Q_weird", "2020-03-01T00:00", "2020-03-06T00:00")
+    ticket("S_fast", "2020-03-01T00:00", "2020-03-06T00:00")
+    ticket("R_too_recent", "2021-05-30T00:00")
     status_change("K_reopened", "2020-03-06T00:00", "Open", "Resolved")
     status_change("K_reopened", "2020-03-10T00:00", "Resolved", "Reopened")
     status_change("K_reopened", "2020-04-20T00:00", "Reopened", "Resolved")
@@ -69,8 +72,11 @@ def con():
     c = duckdb.connect()
     c.execute("create table issues (issue_key varchar, project_key varchar, issue_type varchar, status varchar, resolution varchar, created timestamp, resolution_date timestamp, priority varchar, assignee varchar, reporter varchar, components varchar[], link_count integer, comment_count integer)")
     c.executemany("insert into issues (issue_key, project_key, issue_type, status, resolution, created, resolution_date) values (?,?,?,?,?,?,?)", ISSUES)
-    c.execute("create table changelog (issue_key varchar, history_id varchar, created timestamp, author varchar, field varchar, from_string varchar, to_string varchar)")
+    c.execute("create table changelog (issue_key varchar, history_id varchar, created timestamp, author varchar, field varchar, from_value varchar, from_string varchar, to_value varchar, to_string varchar)")
     c.executemany("insert into changelog (issue_key, history_id, created, field, from_string, to_string) values (?,?,?, 'status', ?, ?)", EVENTS)
+    c.execute("create table comments (issue_key varchar, comment_id varchar, created timestamp, updated timestamp, author varchar, body_length integer)")
+    c.execute("create table issue_text_stats (issue_key varchar, summary_length bigint, description_length bigint)")
+    c.execute("insert into issue_text_stats select issue_key, 20, 100 from issues")
     transform.run_layers(c, PARAMS)
     return c
 
@@ -176,3 +182,17 @@ def test_analysis_late_rate_is_delivered_only(con):
 def test_stage_shares_add_up_to_the_whole_lead_time(con):
     row = con.execute("select waiting_pct + building_pct + in_review_pct + resolved_gap_pct from analysis_stage_share where project_key = 'P1'").fetchone()[0]
     assert abs(row - 100) < 1.0
+
+
+def test_day7_point_needs_the_ticket_to_be_open_on_day_7_and_inside_the_data(con):
+    pts = {r[0]: r[1] for r in con.execute("select issue_key, string_agg(point, ',' order by point) from features group by 1").fetchall()}
+    assert pts["A_not_late"] == "creation,day7"   # resolved on day 10, so still open on day 7
+    assert pts["S_fast"] == "creation"            # resolved on day 5, before day 7
+    assert pts["E_open_old"] == "creation,day7"
+    assert pts["F_open_young"] == "creation,day7" # day 7 is exactly the snapshot, still inside the data
+    assert pts["R_too_recent"] == "creation"      # day 7 falls after the snapshot: its state at day 7 is unknown
+
+
+def test_creation_features_use_as_of_values(con):
+    r = con.execute("select priority_rank, component_count, link_count from features where issue_key = 'A_not_late' and point = 'creation'").fetchone()
+    assert r[1] == 0 and r[2] == 0

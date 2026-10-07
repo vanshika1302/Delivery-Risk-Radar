@@ -46,3 +46,14 @@ def test_a_document_dumped_twice_is_loaded_once(tmp_path):
     assert con.execute("select count(*) from changelog").fetchone()[0] == 2   # not 4
     assert con.execute("select count(*) from comments").fetchone()[0] == 1
     assert con.execute("select count(*) from issue_text_stats").fetchone()[0] == 2
+
+
+def test_slim_load_keeps_all_tickets_but_only_the_chosen_projects_history(tmp_path):
+    other = {**FULL, "key": "ZOO-1", "fields": {**FULL["fields"], "project": {"key": "ZOO", "name": "Zoo"}}}
+    _, out = parse(tmp_path, [segment("Apache", [FULL, other])])
+    db = tmp_path / "slim.duckdb"
+    assert load.load(out, db, projects=["KAFKA"]) == []
+    con = duckdb.connect(str(db), read_only=True)
+    assert con.execute("select count(*) from issues").fetchone()[0] == 2                      # every project's tickets stay
+    assert con.execute("select count(distinct issue_key) from changelog").fetchone()[0] == 1  # history only for KAFKA
+    assert con.execute("select count(*) from issue_text_stats").fetchone()[0] == 1

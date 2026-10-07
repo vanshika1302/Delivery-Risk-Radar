@@ -21,7 +21,9 @@ UNION ALL
 SELECT t.issue_key, t.project_key, t.issue_type, t.priority, 'day7', t.created + INTERVAL $POINT_DAYS DAY
 FROM tickets t JOIN labels l USING (issue_key)
 WHERE t.exclusion_reason IS NULL AND l.label_status IN ('labelled', 'open_known_late', 'open_unlabelled')
-  AND (t.resolution_date IS NULL OR t.resolution_date > t.created + INTERVAL $POINT_DAYS DAY);
+  AND (t.resolution_date IS NULL OR t.resolution_date > t.created + INTERVAL $POINT_DAYS DAY)
+  -- The ticket must have reached day 7 inside the data; later than the snapshot we cannot know its state.
+  AND t.created + INTERVAL $POINT_DAYS DAY <= TIMESTAMP '$SNAPSHOT';
 
 -- Changelog rows for the fields we rewind (old text is reduced to its length).
 CREATE OR REPLACE TEMP TABLE cl AS
@@ -97,15 +99,17 @@ FROM issues WHERE reporter IS NOT NULL;
 -- Recent history of the peer group (and of the project): over the last N delivered tickets resolved before T.
 CREATE OR REPLACE TEMP TABLE peer_hist AS
 SELECT project_key, issue_type, resolution_date,
-       count(*) OVER w AS n, quantile_cont(lead_days, 0.5) OVER w AS median_lead_days, avg(is_late_delivered_only::int) OVER w AS late_rate
-FROM labels WHERE label_status = 'labelled'
-WINDOW w AS (PARTITION BY project_key, issue_type ORDER BY resolution_date, issue_key ROWS BETWEEN $PEER_PRECEDING PRECEDING AND CURRENT ROW);
+       count(*) OVER (PARTITION BY project_key, issue_type ORDER BY resolution_date, issue_key ROWS BETWEEN $PEER_PRECEDING PRECEDING AND CURRENT ROW) AS n,
+       quantile_cont(lead_days, 0.5) OVER (PARTITION BY project_key, issue_type ORDER BY resolution_date, issue_key ROWS BETWEEN $PEER_PRECEDING PRECEDING AND CURRENT ROW) AS median_lead_days,
+       avg(is_late_delivered_only::int) OVER (PARTITION BY project_key, issue_type ORDER BY resolution_date, issue_key ROWS BETWEEN $PEER_PRECEDING PRECEDING AND CURRENT ROW) AS late_rate
+FROM labels WHERE label_status = 'labelled';
 
 CREATE OR REPLACE TEMP TABLE project_hist AS
 SELECT project_key, resolution_date,
-       count(*) OVER w AS n, quantile_cont(lead_days, 0.5) OVER w AS median_lead_days, avg(is_late_delivered_only::int) OVER w AS late_rate
-FROM labels WHERE label_status = 'labelled'
-WINDOW w AS (PARTITION BY project_key ORDER BY resolution_date, issue_key ROWS BETWEEN $PEER_PRECEDING PRECEDING AND CURRENT ROW);
+       count(*) OVER (PARTITION BY project_key ORDER BY resolution_date, issue_key ROWS BETWEEN $PEER_PRECEDING PRECEDING AND CURRENT ROW) AS n,
+       quantile_cont(lead_days, 0.5) OVER (PARTITION BY project_key ORDER BY resolution_date, issue_key ROWS BETWEEN $PEER_PRECEDING PRECEDING AND CURRENT ROW) AS median_lead_days,
+       avg(is_late_delivered_only::int) OVER (PARTITION BY project_key ORDER BY resolution_date, issue_key ROWS BETWEEN $PEER_PRECEDING PRECEDING AND CURRENT ROW) AS late_rate
+FROM labels WHERE label_status = 'labelled';
 
 -- Day 7 only: activity up to T.
 CREATE OR REPLACE TEMP TABLE day7_activity AS

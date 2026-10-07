@@ -26,3 +26,7 @@ test_end = "2021-10-01"         # keeps at least 90% of test tickets labelable (
 jira_review_projects = ["AMBARI", "HIVE", "HBASE", "CASSANDRA"]
 day7_after_days = 7             # second prediction point: this many days after creation
 peer_window = 200               # last N delivered tickets of the peer group, resolved before the prediction point
+
+[duckdb]
+memory_limit = "3GB"            # this Mac has 8 GB of RAM
+max_temp_size = "2GB"           # cap on spill files, so a heavy query fails instead of filling the disk

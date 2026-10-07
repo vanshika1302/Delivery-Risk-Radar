@@ -10,9 +10,9 @@ Python 3.13, DuckDB, SQL, scikit-learn, Jupyter, pyarrow (Parquet), pymongo (onl
 
 ## Layout
 
-- `etl/`: `extract.py` (stream the dataset's Apache collection to Parquet), `load.py` (Parquet to DuckDB), `transform.py` (scope and data quality, status stages, the late label; runs `sql/02` onward with parameters from `config/params.toml`), `run_pipeline.py`. Run as modules from the repo root, e.g. `python -m etl.run_pipeline`.
+- `etl/`: `extract.py` (stream the dataset's Apache collection to Parquet), `load.py` (Parquet to DuckDB; keeps every ticket but only the 8 modelling projects' changelog and comments, which keeps the file near 1 GB; `--all-projects` keeps everything), `transform.py` (scope and data quality, status stages, the late label; runs `sql/02` onward with parameters from `config/params.toml`), `run_pipeline.py`. Run as modules from the repo root, e.g. `python -m etl.run_pipeline`.
 - `config/`: `params.toml` (projects, thresholds, split dates) and `stage_mapping.csv`. `docs/`: `adr/` and `data-audit.md` (read it before changing scope or labels).
-- `sql/`: numbered SQL files (`05_analysis.sql` builds the analysis tables). `notebooks/`: Jupyter (`02_sql_analysis.ipynb`, with charts; findings in `docs/sql-analysis.md`). `tests/`: pytest. `prototypes/`: throwaway mock-ups.
+- `sql/`: numbered SQL files (`05_analysis.sql` builds the analysis tables, `06_features.sql` builds the as-of features). `notebooks/`: Jupyter (`02_sql_analysis.ipynb`, with charts; findings in `docs/sql-analysis.md`). `tests/`: pytest. `prototypes/`: throwaway mock-ups.
 - `data/raw/` and `data/processed/` are gitignored. The DuckDB file is `data/processed/radar.duckdb`.
 
 ## Where the thinking lives
@@ -28,3 +28,4 @@ Python 3.13, DuckDB, SQL, scikit-learn, Jupyter, pyarrow (Parquet), pymongo (onl
 - Splits are by time, never random.
 - Never restore the dataset into MongoDB (it needs about 60 GB). The extraction streams it; the disk is small.
 - Do not commit data. A small sample under `data/sample/` is the only exception.
+- DuckDB memory and spill space are capped in `config/params.toml` (`[duckdb]`); the disk is small, so a heavy query should fail, not fill it.

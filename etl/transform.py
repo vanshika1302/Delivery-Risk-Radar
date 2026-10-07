@@ -59,6 +59,8 @@ def transform(db=DEFAULT_DB, params_path=DEFAULT_PARAMS):
     params = tomllib.loads(Path(params_path).read_text())
     con = duckdb.connect(str(db))
     try:
+        from etl.load import configure
+        configure(con, params)
         run_layers(con, params)
         return report(con, params)
     finally:
